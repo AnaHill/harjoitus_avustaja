@@ -13,10 +13,9 @@ Selainpohjainen työkalu harjoituksen esittämisen. Toimii suoraan selaimessa il
 - voisin laittaa selitystekstiä tiettyihin kohtiin
 
 ## Ideoita jatkokehitykseen
-Tallennus voisi olla parempi
+tekstin voisi laittaa useammalle riville
 
-Onnistuuko tekstikentän lisäys hetkeksi, muutamaksi hetkeksi, jossa selittäisi mitä tapahtuu? Ja sitten sen voisi poistaa tai siirtää toiseen kohtaa ja muuttaa teksti uudeksi
-
+Arkisto ei toimi oikein; pitäisi näyttää kaikki .json animaatiot mitä löytyy samasta kansiosta kuin missä on lokaalisti avattu .html
 
 - pohjalle voisi laittaa yksinkertaisen osan kenttää, eri kentän kohdista eri lajeista 
 - Käyttäjä voi valita sopivan hahmotelma
@@ -25,8 +24,10 @@ Onnistuuko tekstikentän lisäys hetkeksi, muutamaksi hetkeksi, jossa selittäis
   - puolet kentästä
   - hieman maalivahdin aluetta suurempi kokonaisuus, maalintekoharjoituksia varten
 - koripallossa sitten esimerkiksi hyökkäysalue
+- ringetessä tai jääkiekossa kaukalo viivoineen
 - jne
 
 
+Tallennus voisi olla parempi
 
 
