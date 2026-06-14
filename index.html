@@ -813,10 +813,9 @@ canvas.addEventListener('mousedown', e => {
   addObjToAllFrames(o);
   saveFrame();
   selectedId = o.id;
-  setTool('select');
   render();
 
-  if (o.type === 'text') openDlg(o.id);
+  if (o.type === 'text') { setTool('select'); openDlg(o.id); }
 });
 
 canvas.addEventListener('mousemove', e => {
