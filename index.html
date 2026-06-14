@@ -216,6 +216,34 @@ body {
 #dlg-ok:hover { background: #4f46e5; }
 #dlg-cancel { background: #374151; color: #d1d5db; }
 #dlg-cancel:hover { background: #4b5563; }
+
+#help-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: none; align-items: center; justify-content: center;
+  z-index: 300;
+}
+#help-overlay.show { display: flex; }
+#help-box {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 22px 26px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+}
+#help-box h2 { font-size: 15px; font-weight: 700; color: #f9fafb; margin-bottom: 16px; }
+#help-box h3 { font-size: 12px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; margin: 14px 0 6px; }
+#help-box ul { list-style: none; padding: 0; }
+#help-box li { font-size: 13px; color: #d1d5db; padding: 3px 0; }
+#help-box li span { display: inline-block; background: #374151; border-radius: 4px; padding: 1px 6px; font-size: 11px; font-family: monospace; color: #fde68a; margin-right: 6px; }
+#help-close {
+  margin-top: 18px; width: 100%;
+  background: #374151; border: none; color: #d1d5db;
+  padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+#help-close:hover { background: #4b5563; }
 </style>
 </head>
 <body>
@@ -289,6 +317,15 @@ body {
 
   <div class="spacer"></div>
 
+  <!-- Help -->
+  <button class="tool-btn" onclick="document.getElementById('help-overlay').classList.add('show')" title="Ohjeet">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <circle cx="13" cy="13" r="10" fill="none" stroke="#6b7280" stroke-width="1.5"/>
+      <text x="13" y="18" text-anchor="middle" fill="#9ca3af" font-size="13" font-weight="bold" font-family="system-ui">?</text>
+    </svg>
+    Ohjeet
+  </button>
+
   <!-- Clear all -->
   <button class="tool-btn" onclick="clearAll()" title="Tyhjennä kaikki" style="color:#6b7280;">
     <svg class="tool-icon" viewBox="0 0 26 26">
@@ -325,6 +362,43 @@ body {
   <span id="frame-label">Hetki 1 / 1</span>
 
   <span id="hint">Kaksoisklikkaa: muokkaa · Hiiren oikea: poista · Del: poista valittu</span>
+</div>
+
+<!-- Help modal -->
+<div id="help-overlay">
+  <div id="help-box">
+    <h2>Harjoitusavustaja — ohjeet</h2>
+
+    <h3>Animaatio</h3>
+    <ul>
+      <li>Asettele objektit → klikkaa <strong>+ Lisää hetki</strong> → siirrä objekteja → lisää uusi hetki</li>
+      <li>Keltaiset nuolet näyttävät liikkeen seuraavaan hetkeen</li>
+      <li>▶ toistaa animaation pehmein siirtymin</li>
+    </ul>
+
+    <h3>Hiiri</h3>
+    <ul>
+      <li>Raahaa objekteja hiirellä</li>
+      <li>Kaksoisklikkaa — muokkaa nimeä tai tekstiä</li>
+      <li>Hiiren oikea — poista objekti</li>
+    </ul>
+
+    <h3>Näppäinoikotiet</h3>
+    <ul>
+      <li><span>V</span> Valitse &amp; siirrä</li>
+      <li><span>P</span> Pallo</li>
+      <li><span>O</span> Oma pelaaja</li>
+      <li><span>R</span> Vastustaja</li>
+      <li><span>T</span> Tötsä</li>
+      <li><span>K</span> Teksti</li>
+      <li><span>← →</span> Hetket</li>
+      <li><span>Välilyönti</span> Toista / pysäytä</li>
+      <li><span>Del</span> Poista valittu</li>
+      <li><span>Esc</span> Takaisin valintaan</li>
+    </ul>
+
+    <button id="help-close" onclick="document.getElementById('help-overlay').classList.remove('show')">Sulje</button>
+  </div>
 </div>
 
 <!-- Label dialog -->
@@ -748,11 +822,19 @@ function setTool(t) {
   canvas.style.cursor = t === 'select' ? 'default' : 'crosshair';
 }
 
+function nextNum(type) {
+  const used = new Set();
+  for (const fr of frames)
+    for (const o of fr)
+      if (o.type === type && o.label) { const n = parseInt(o.label); if (!isNaN(n)) used.add(n); }
+  let n = 1; while (used.has(n)) n++; return n;
+}
+
 function makeObj(type, x, y) {
   const o = { id: uid++, type, x, y, label: '' };
-  if (type === 'own')  { ownIdx++; o.label = String(ownIdx); }
-  if (type === 'opp')  { oppIdx++; o.label = String(oppIdx); }
-  if (type === 'text') { o.label = 'Teksti'; }
+  if (type === 'own')  o.label = String(nextNum('own'));
+  if (type === 'opp')  o.label = String(nextNum('opp'));
+  if (type === 'text') o.label = 'Teksti';
   return o;
 }
 
@@ -905,6 +987,10 @@ document.getElementById('dlg-input').addEventListener('keydown', e => {
 document.getElementById('dlg-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('dlg-overlay')) closeDlg();
 });
+document.getElementById('help-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('help-overlay'))
+    document.getElementById('help-overlay').classList.remove('show');
+});
 
 // ─── Keyboard shortcuts ───────────────────────────────────────────────────────
 
@@ -919,7 +1005,9 @@ document.addEventListener('keydown', e => {
     case 'ArrowRight': e.preventDefault(); goFrame(currentFrame + 1); break;
     case 'Delete':
     case 'Backspace':  deleteSelected();                             break;
-    case 'Escape':     selectedId = null; setTool('select'); render(); break;
+    case 'Escape':
+      document.getElementById('help-overlay').classList.remove('show');
+      selectedId = null; setTool('select'); render(); break;
     case 'v': case 'V': setTool('select');  break;
     case 'p': case 'P': setTool('ball');    break;
     case 'o': case 'O': setTool('own');     break;
