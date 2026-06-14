@@ -116,6 +116,19 @@ body {
 
 #add-frame-btn:hover { background: #047857; }
 
+#add-frame-after-btn {
+  background: #059669;
+  border: none;
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+#add-frame-after-btn:hover { background: #047857; }
+
 #del-frame-btn {
   background: #374151;
   border: none;
@@ -353,7 +366,8 @@ body {
 
   <div class="sep"></div>
 
-  <button id="add-frame-btn" onclick="addFrame()" title="Lisää uusi hetki nykyisen jälkeen">+ Lisää hetki</button>
+  <button id="add-frame-btn" onclick="addFrameBefore()" title="Lisää hetki ennen tätä">+ ennen</button>
+  <button id="add-frame-after-btn" onclick="addFrame()" title="Lisää hetki tämän jälkeen">+ jälkeen</button>
   <button id="del-frame-btn" onclick="deleteFrame()" title="Poista tämä hetki">🗑</button>
 
   <div class="sep"></div>
@@ -371,7 +385,8 @@ body {
 
     <h3>Animaatio</h3>
     <ul>
-      <li>Asettele objektit → klikkaa <strong>+ Lisää hetki</strong> → siirrä objekteja → lisää uusi hetki</li>
+      <li>Asettele objektit → klikkaa <strong>+ jälkeen</strong> → siirrä objekteja → lisää uusi hetki</li>
+      <li><strong>+ ennen</strong> lisää hetken nykyisen eteen — toimii myös aivan alussa</li>
       <li>Keltaiset nuolet näyttävät liikkeen seuraavaan hetkeen</li>
       <li>▶ toistaa animaation pehmein siirtymin</li>
     </ul>
@@ -709,10 +724,19 @@ function goFrame(idx) {
 
 function addFrame() {
   saveFrame();
-  // duplicate current state
   const snap = objects.map(o => ({ ...o }));
   frames.splice(currentFrame + 1, 0, snap);
   currentFrame++;
+  objects = frames[currentFrame].map(o => ({ ...o }));
+  selectedId = null;
+  updateUI();
+  render();
+}
+
+function addFrameBefore() {
+  saveFrame();
+  const snap = objects.map(o => ({ ...o }));
+  frames.splice(currentFrame, 0, snap);
   objects = frames[currentFrame].map(o => ({ ...o }));
   selectedId = null;
   updateUI();
