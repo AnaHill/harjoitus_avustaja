@@ -501,7 +501,8 @@ body {
     <ul>
       <li>Raahaa objekteja hiirellä</li>
       <li>Kaksoisklikkaa — muokkaa nimeä tai tekstiä</li>
-      <li>Hiiren oikea — poista objekti</li>
+      <li>Hiiren oikea tai Del — poista objekti</li>
+      <li><em>Tekstilappu</em> näkyy vain siinä hetkessä johon se lisätään; poisto koskee vain nykyistä hetkeä</li>
     </ul>
 
     <h3>Näppäinoikotiet</h3>
@@ -1028,7 +1029,7 @@ canvas.addEventListener('mousedown', e => {
   // place new object
   const o = makeObj(activeTool, x, y);
   objects.push(o);
-  addObjToAllFrames(o);
+  if (o.type !== 'text') addObjToAllFrames(o); // teksti vain tähän hetkeen
   saveFrame();
   selectedId = o.id;
   render();
@@ -1065,10 +1066,17 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 function deleteSelected() {
   if (!selectedId) return;
+  const obj = objects.find(o => o.id === selectedId);
+  if (!obj) return;
   const id = selectedId;
   selectedId = null;
   objects = objects.filter(o => o.id !== id);
-  for (let i = 0; i < frames.length; i++) frames[i] = frames[i].filter(o => o.id !== id);
+  if (obj.type === 'text') {
+    // teksti poistetaan vain tästä hetkestä
+    frames[currentFrame] = frames[currentFrame].filter(o => o.id !== id);
+  } else {
+    for (let i = 0; i < frames.length; i++) frames[i] = frames[i].filter(o => o.id !== id);
+  }
   saveFrame();
   render();
 }
