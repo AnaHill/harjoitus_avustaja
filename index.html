@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harjoitusavustaja</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #111827;
+  color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Toolbar */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #1f2937;
+  border-bottom: 1px solid #374151;
+  flex-shrink: 0;
+}
+
+.tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 11px;
+  background: #374151;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: #d1d5db;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.tool-btn:hover { background: #4b5563; color: #fff; }
+
+.tool-btn.active {
+  border-color: #f59e0b;
+  background: #292524;
+  color: #fde68a;
+}
+
+.tool-icon { width: 26px; height: 26px; display: block; }
+
+.sep { width: 1px; background: #374151; height: 40px; margin: 0 4px; }
+
+.spacer { flex: 1; }
+
+/* Canvas */
+#canvas-wrap {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  min-height: 0;
+}
+
+#canvas {
+  border-radius: 6px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.6);
+  display: block;
+}
+
+/* Animation bar */
+#anim-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #1f2937;
+  border-top: 1px solid #374151;
+  flex-shrink: 0;
+}
+
+.anim-btn {
+  background: #374151;
+  border: none;
+  color: #d1d5db;
+  padding: 7px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.anim-btn:hover { background: #4b5563; }
+.anim-btn:disabled { opacity: 0.35; cursor: default; }
+.anim-btn.playing { color: #f87171; }
+
+#add-frame-btn {
+  background: #059669;
+  border: none;
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+#add-frame-btn:hover { background: #047857; }
+
+#del-frame-btn {
+  background: #374151;
+  border: none;
+  color: #9ca3af;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+#del-frame-btn:hover { background: #7f1d1d; color: #fca5a5; }
+
+.frame-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: 300px;
+}
+
+.frame-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #4b5563;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.frame-dot.current { background: #f59e0b; transform: scale(1.3); }
+.frame-dot:hover { background: #9ca3af; }
+
+#frame-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+#hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+/* Label dialog */
+#dlg-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+#dlg-overlay.show { display: flex; }
+
+#dlg {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 20px 22px;
+  min-width: 220px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+}
+
+#dlg h3 { font-size: 14px; font-weight: 600; color: #e5e7eb; margin-bottom: 12px; }
+
+#dlg input {
+  width: 100%;
+  padding: 8px 10px;
+  background: #111827;
+  border: 1px solid #374151;
+  color: #f9fafb;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 14px;
+}
+
+#dlg input:focus { border-color: #6366f1; }
+
+#dlg .row {
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+#dlg .row button {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+#dlg-ok { background: #6366f1; color: #fff; }
+#dlg-ok:hover { background: #4f46e5; }
+#dlg-cancel { background: #374151; color: #d1d5db; }
+#dlg-cancel:hover { background: #4b5563; }
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <!-- Select -->
+  <button class="tool-btn active" id="tool-select" onclick="setTool('select')" title="Valitse ja siirrä (V)">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <path d="M7 3 L19 13 L13.5 14.5 L17 22 L14.5 23 L11 15.5 L7 19 Z" fill="#d1d5db"/>
+    </svg>
+    Valitse
+  </button>
+
+  <div class="sep"></div>
+
+  <!-- Ball -->
+  <button class="tool-btn" id="tool-ball" onclick="setTool('ball')" title="Lisää pallo (P)">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <circle cx="13" cy="13" r="9" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"/>
+      <path d="M8 9 Q13 12 18 9" stroke="#d97706" stroke-width="1" fill="none"/>
+      <path d="M6 14 Q13 11 20 14" stroke="#d97706" stroke-width="1" fill="none"/>
+    </svg>
+    Pallo
+  </button>
+
+  <!-- Own player -->
+  <button class="tool-btn" id="tool-own" onclick="setTool('own')" title="Oma pelaaja (O)">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <circle cx="13" cy="13" r="9" fill="#3b82f6" stroke="#1d4ed8" stroke-width="1.5"/>
+      <text x="13" y="17" text-anchor="middle" fill="white" font-size="9" font-weight="bold" font-family="system-ui">1</text>
+    </svg>
+    Oma
+  </button>
+
+  <!-- Opponent -->
+  <button class="tool-btn" id="tool-opp" onclick="setTool('opp')" title="Vastustaja (V)">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <circle cx="13" cy="13" r="9" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5"/>
+      <text x="13" y="17" text-anchor="middle" fill="white" font-size="9" font-weight="bold" font-family="system-ui">1</text>
+    </svg>
+    Vastustaja
+  </button>
+
+  <!-- Cone -->
+  <button class="tool-btn" id="tool-cone" onclick="setTool('cone')" title="Tötsä (T)">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <polygon points="13,3 22,23 4,23" fill="#f97316" stroke="#ea580c" stroke-width="1.5"/>
+    </svg>
+    Tötsä
+  </button>
+
+  <!-- Text -->
+  <button class="tool-btn" id="tool-text" onclick="setTool('text')" title="Tekstilappu (K)">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <rect x="3" y="7" width="20" height="12" rx="3" fill="#374151" stroke="#6b7280" stroke-width="1.5"/>
+      <text x="13" y="17" text-anchor="middle" fill="#e5e7eb" font-size="10" font-weight="bold" font-family="system-ui">Aa</text>
+    </svg>
+    Teksti
+  </button>
+
+  <div class="sep"></div>
+
+  <!-- Delete -->
+  <button class="tool-btn" id="tool-delete" onclick="deleteSelected()" title="Poista valittu (Del)">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <rect x="4" y="7" width="18" height="2" rx="1" fill="#9ca3af"/>
+      <path d="M10 5 h6 v2 H10z" fill="#9ca3af"/>
+      <path d="M5 9 L6.5 22 h13 L21 9" stroke="#9ca3af" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    </svg>
+    Poista
+  </button>
+
+  <div class="spacer"></div>
+
+  <!-- Clear all -->
+  <button class="tool-btn" onclick="clearAll()" title="Tyhjennä kaikki" style="color:#6b7280;">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <path d="M4 8 h18 M10 5 h6 v3 H10z M6 8 l1 14 h12 l1-14" stroke="#6b7280" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+      <line x1="10" y1="12" x2="10" y2="19" stroke="#6b7280" stroke-width="1.5"/>
+      <line x1="13" y1="12" x2="13" y2="19" stroke="#6b7280" stroke-width="1.5"/>
+      <line x1="16" y1="12" x2="16" y2="19" stroke="#6b7280" stroke-width="1.5"/>
+    </svg>
+    Tyhjennä
+  </button>
+</div>
+
+<!-- Canvas -->
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+</div>
+
+<!-- Animation bar -->
+<div id="anim-bar">
+  <button class="anim-btn" id="btn-first" onclick="goFrame(0)" title="Ensimmäinen">⏮</button>
+  <button class="anim-btn" id="btn-prev"  onclick="goFrame(currentFrame - 1)" title="Edellinen (←)">◀</button>
+  <button class="anim-btn" id="btn-play"  onclick="togglePlay()" title="Toista (Välilyönti)">▶</button>
+  <button class="anim-btn" id="btn-next"  onclick="goFrame(currentFrame + 1)" title="Seuraava (→)">▶</button>
+  <button class="anim-btn" id="btn-last"  onclick="goFrame(frames.length - 1)" title="Viimeinen">⏭</button>
+
+  <div class="sep"></div>
+
+  <button id="add-frame-btn" onclick="addFrame()" title="Lisää uusi hetki nykyisen jälkeen">+ Lisää hetki</button>
+  <button id="del-frame-btn" onclick="deleteFrame()" title="Poista tämä hetki">🗑</button>
+
+  <div class="sep"></div>
+
+  <div class="frame-dots" id="frame-dots"></div>
+  <span id="frame-label">Hetki 1 / 1</span>
+
+  <span id="hint">Kaksoisklikkaa: muokkaa · Hiiren oikea: poista · Del: poista valittu</span>
+</div>
+
+<!-- Label dialog -->
+<div id="dlg-overlay">
+  <div id="dlg">
+    <h3 id="dlg-title">Muokkaa tekstiä</h3>
+    <input type="text" id="dlg-input" placeholder="Kirjoita teksti...">
+    <div class="row">
+      <button id="dlg-cancel" onclick="closeDlg()">Peruuta</button>
+      <button id="dlg-ok" onclick="confirmDlg()">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const FIELD_COLOR = '#16a34a';
+const FIELD_LINE  = 'rgba(255,255,255,0.55)';
+const FRAME_MS    = 1000; // ms per keyframe transition
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+
+let objects      = [];   // live objects (current frame)
+let frames       = [[]]; // snapshots; frames[i] = array of {id,type,x,y,label}
+let currentFrame = 0;
+let activeTool   = 'select';
+let selectedId   = null;
+
+// drag
+let dragging = false, dragDX = 0, dragDY = 0;
+
+// animation
+let playing    = false;
+let playOrigin = 0;      // frame index playback started at
+let playStart  = 0;      // timestamp
+let playRAF    = null;
+
+// counters for auto-labeling
+let ownIdx = 0, oppIdx = 0;
+let uid = 1;
+
+// dialog
+let dlgId = null;
+
+// ─── Resize ──────────────────────────────────────────────────────────────────
+
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  const maxW = wrap.clientWidth  - 24;
+  const maxH = wrap.clientHeight - 24;
+  const aspect = 16 / 9;
+  let w = maxW, h = maxW / aspect;
+  if (h > maxH) { h = maxH; w = maxH * aspect; }
+  canvas.width  = Math.floor(w);
+  canvas.height = Math.floor(h);
+  render();
+}
+window.addEventListener('resize', resize);
+
+// ─── Field drawing ───────────────────────────────────────────────────────────
+
+function drawField() {
+  const W = canvas.width, H = canvas.height;
+
+  // green background with subtle stripe effect
+  ctx.fillStyle = '#166534';
+  ctx.fillRect(0, 0, W, H);
+
+  const stripes = 10;
+  for (let i = 0; i < stripes; i++) {
+    if (i % 2 === 0) {
+      ctx.fillStyle = FIELD_COLOR;
+      ctx.fillRect(i * W / stripes, 0, W / stripes, H);
+    }
+  }
+
+  const m = W * 0.04; // margin
+
+  ctx.strokeStyle = FIELD_LINE;
+  ctx.lineWidth   = 2;
+
+  // Outer border
+  ctx.strokeRect(m, m, W - m*2, H - m*2);
+
+  // Centre line
+  ctx.beginPath();
+  ctx.moveTo(W/2, m); ctx.lineTo(W/2, H - m);
+  ctx.stroke();
+
+  // Centre circle
+  const cr = H * 0.13;
+  ctx.beginPath(); ctx.arc(W/2, H/2, cr, 0, Math.PI*2); ctx.stroke();
+
+  // Centre dot
+  ctx.fillStyle = FIELD_LINE;
+  ctx.beginPath(); ctx.arc(W/2, H/2, 4, 0, Math.PI*2); ctx.fill();
+
+  // Penalty areas (left & right)
+  const pa_w = W * 0.11, pa_h = H * 0.40;
+  ctx.strokeRect(m, (H - pa_h)/2, pa_w, pa_h);               // left
+  ctx.strokeRect(W - m - pa_w, (H - pa_h)/2, pa_w, pa_h);    // right
+
+  // Goal areas
+  const ga_w = W * 0.05, ga_h = H * 0.20;
+  ctx.strokeRect(m, (H - ga_h)/2, ga_w, ga_h);
+  ctx.strokeRect(W - m - ga_w, (H - ga_h)/2, ga_w, ga_h);
+
+  // Penalty spots
+  const pspot = m + pa_w * 0.65;
+  ctx.fillStyle = FIELD_LINE;
+  ctx.beginPath(); ctx.arc(pspot, H/2, 3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W - pspot, H/2, 3, 0, Math.PI*2); ctx.fill();
+
+  // Corner arcs
+  const R = W * 0.015;
+  [
+    [m, m, 0, Math.PI/2],
+    [W-m, m, Math.PI/2, Math.PI],
+    [W-m, H-m, Math.PI, 3*Math.PI/2],
+    [m, H-m, 3*Math.PI/2, 2*Math.PI]
+  ].forEach(([cx, cy, a0, a1]) => {
+    ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1); ctx.stroke();
+  });
+}
+
+// ─── Object drawing ──────────────────────────────────────────────────────────
+
+function r(obj) {
+  // hit radius
+  if (obj.type === 'ball') return 12;
+  if (obj.type === 'own' || obj.type === 'opp') return 18;
+  if (obj.type === 'cone') return 15;
+  return 0;
+}
+
+function drawBall(o, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur  = 6;
+  const g = ctx.createRadialGradient(o.x - 3, o.y - 3, 1, o.x, o.y, 12);
+  g.addColorStop(0, '#fef9c3');
+  g.addColorStop(0.5, '#fbbf24');
+  g.addColorStop(1, '#b45309');
+  ctx.beginPath(); ctx.arc(o.x, o.y, 12, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = '#92400e'; ctx.lineWidth = 1.5; ctx.stroke();
+  // seam lines
+  ctx.strokeStyle = 'rgba(120,60,0,0.4)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(o.x, o.y, 12, -0.8, 0.8); ctx.stroke();
+  ctx.beginPath(); ctx.arc(o.x, o.y, 12, Math.PI - 0.8, Math.PI + 0.8); ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlayer(o, alpha) {
+  const own = o.type === 'own';
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur  = 8;
+  const g = ctx.createRadialGradient(o.x - 5, o.y - 5, 2, o.x, o.y, 18);
+  if (own) {
+    g.addColorStop(0, '#93c5fd');
+    g.addColorStop(1, '#1e3a8a');
+  } else {
+    g.addColorStop(0, '#fca5a5');
+    g.addColorStop(1, '#7f1d1d');
+  }
+  ctx.beginPath(); ctx.arc(o.x, o.y, 18, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = own ? '#1d4ed8' : '#b91c1c';
+  ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  if (o.label) {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(o.label.slice(0, 3), o.x, o.y);
+  }
+  ctx.restore();
+}
+
+function drawCone(o, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur  = 5;
+  const s = 15;
+  ctx.beginPath();
+  ctx.moveTo(o.x, o.y - s);
+  ctx.lineTo(o.x + s, o.y + s);
+  ctx.lineTo(o.x - s, o.y + s);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(o.x, o.y - s, o.x, o.y + s);
+  g.addColorStop(0, '#fed7aa');
+  g.addColorStop(1, '#c2410c');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = '#7c2d12'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.restore();
+}
+
+function drawTextObj(o, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = 'bold 13px system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(o.label).width;
+  const pw = tw + 16, ph = 22;
+  ctx.fillStyle = 'rgba(17,24,39,0.85)';
+  // rounded rect fallback
+  const x = o.x - pw/2, y = o.y - ph/2, rr = 5;
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + pw - rr, y);
+  ctx.arcTo(x + pw, y, x + pw, y + rr, rr);
+  ctx.lineTo(x + pw, y + ph - rr);
+  ctx.arcTo(x + pw, y + ph, x + pw - rr, y + ph, rr);
+  ctx.lineTo(x + rr, y + ph);
+  ctx.arcTo(x, y + ph, x, y + ph - rr, rr);
+  ctx.lineTo(x, y + rr);
+  ctx.arcTo(x, y, x + rr, y, rr);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#4b5563'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#f9fafb';
+  ctx.fillText(o.label, o.x, o.y);
+  ctx.restore();
+}
+
+function selectionRing(o) {
+  if (playing) return;
+  ctx.save();
+  ctx.strokeStyle = '#fde68a';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([5, 4]);
+  const rad = (o.type === 'text') ? 14 : r(o) + 5;
+  ctx.beginPath(); ctx.arc(o.x, o.y, rad, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawObj(o, alpha = 1) {
+  if      (o.type === 'ball') drawBall(o, alpha);
+  else if (o.type === 'own' || o.type === 'opp') drawPlayer(o, alpha);
+  else if (o.type === 'cone') drawCone(o, alpha);
+  else if (o.type === 'text') drawTextObj(o, alpha);
+
+  if (o.id === selectedId) selectionRing(o);
+}
+
+// ─── Arrows between frames ───────────────────────────────────────────────────
+
+function drawMovementArrows() {
+  if (playing || currentFrame >= frames.length - 1) return;
+  const from = frames[currentFrame];
+  const to   = frames[currentFrame + 1];
+  for (const t of to) {
+    const f = from.find(x => x.id === t.id);
+    if (!f) continue;
+    const dx = t.x - f.x, dy = t.y - f.y;
+    if (Math.hypot(dx, dy) < 6) continue;
+    arrow(f.x, f.y, t.x, t.y);
+  }
+}
+
+function arrow(x1, y1, x2, y2) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const len   = Math.hypot(x2 - x1, y2 - y1);
+  const head  = Math.min(14, len * 0.35);
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(253,230,138,0.75)';
+  ctx.fillStyle   = 'rgba(253,230,138,0.75)';
+  ctx.lineWidth   = 2;
+  ctx.setLineDash([7, 5]);
+  ctx.lineCap = 'round';
+
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - head * Math.cos(angle - 0.45), y2 - head * Math.sin(angle - 0.45));
+  ctx.lineTo(x2 - head * Math.cos(angle + 0.45), y2 - head * Math.sin(angle + 0.45));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// ─── Render ──────────────────────────────────────────────────────────────────
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawField();
+  drawMovementArrows();
+  // draw non-selected first, selected on top
+  for (const o of objects) { if (o.id !== selectedId) drawObj(o); }
+  const sel = objects.find(o => o.id === selectedId);
+  if (sel) drawObj(sel);
+}
+
+// ─── Frame management ────────────────────────────────────────────────────────
+
+function saveFrame() {
+  frames[currentFrame] = objects.map(o => ({ ...o }));
+}
+
+function goFrame(idx) {
+  if (idx < 0 || idx >= frames.length) return;
+  saveFrame();
+  currentFrame = idx;
+  objects = frames[currentFrame].map(o => ({ ...o }));
+  selectedId = null;
+  updateUI();
+  render();
+}
+
+function addFrame() {
+  saveFrame();
+  // duplicate current state
+  const snap = objects.map(o => ({ ...o }));
+  frames.splice(currentFrame + 1, 0, snap);
+  currentFrame++;
+  objects = frames[currentFrame].map(o => ({ ...o }));
+  selectedId = null;
+  updateUI();
+  render();
+}
+
+function deleteFrame() {
+  if (frames.length <= 1) { alert('Viimeistä hetkeä ei voi poistaa.'); return; }
+  frames.splice(currentFrame, 1);
+  if (currentFrame >= frames.length) currentFrame = frames.length - 1;
+  objects = frames[currentFrame].map(o => ({ ...o }));
+  selectedId = null;
+  updateUI();
+  render();
+}
+
+function updateUI() {
+  const n = frames.length;
+  const i = currentFrame;
+
+  document.getElementById('btn-first').disabled = i === 0;
+  document.getElementById('btn-prev').disabled  = i === 0;
+  document.getElementById('btn-next').disabled  = i === n - 1;
+  document.getElementById('btn-last').disabled  = i === n - 1;
+  document.getElementById('frame-label').textContent = `Hetki ${i+1} / ${n}`;
+
+  // dots
+  const dots = document.getElementById('frame-dots');
+  dots.innerHTML = '';
+  for (let k = 0; k < n; k++) {
+    const d = document.createElement('div');
+    d.className = 'frame-dot' + (k === i ? ' current' : '');
+    d.title = `Hetki ${k+1}`;
+    d.onclick = () => goFrame(k);
+    dots.appendChild(d);
+  }
+}
+
+// ─── Animation playback ──────────────────────────────────────────────────────
+
+function togglePlay() {
+  if (playing) stopPlay();
+  else startPlay();
+}
+
+function startPlay() {
+  if (frames.length <= 1) return;
+  saveFrame();
+  playing    = true;
+  playOrigin = currentFrame;
+  playStart  = performance.now();
+  document.getElementById('btn-play').textContent = '⏸';
+  document.getElementById('btn-play').classList.add('playing');
+  selectedId = null;
+  tick(performance.now());
+}
+
+function stopPlay() {
+  playing = false;
+  if (playRAF) cancelAnimationFrame(playRAF);
+  document.getElementById('btn-play').textContent = '▶';
+  document.getElementById('btn-play').classList.remove('playing');
+  // restore to origin frame
+  currentFrame = playOrigin;
+  objects = frames[currentFrame].map(o => ({ ...o }));
+  updateUI();
+  render();
+}
+
+function tick(now) {
+  if (!playing) return;
+
+  const elapsed = now - playStart;
+  const segment = Math.floor(elapsed / FRAME_MS);
+  const t       = (elapsed % FRAME_MS) / FRAME_MS;
+  const ease    = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2;
+
+  const fromIdx = playOrigin + segment;
+  const toIdx   = fromIdx + 1;
+
+  if (fromIdx >= frames.length - 1) {
+    stopPlay();
+    return;
+  }
+
+  currentFrame = fromIdx;
+  const from = frames[fromIdx];
+  const to   = frames[toIdx] || frames[fromIdx];
+
+  objects = from.map(snap => {
+    const dst = to.find(s => s.id === snap.id);
+    if (!dst) return { ...snap };
+    return { ...snap, x: snap.x + (dst.x - snap.x) * ease, y: snap.y + (dst.y - snap.y) * ease };
+  });
+
+  render();
+  playRAF = requestAnimationFrame(tick);
+}
+
+// ─── Tool & object placement ─────────────────────────────────────────────────
+
+function setTool(t) {
+  activeTool = t;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('tool-' + t);
+  if (btn) btn.classList.add('active');
+  canvas.style.cursor = t === 'select' ? 'default' : 'crosshair';
+}
+
+function makeObj(type, x, y) {
+  const o = { id: uid++, type, x, y, label: '' };
+  if (type === 'own')  { ownIdx++; o.label = String(ownIdx); }
+  if (type === 'opp')  { oppIdx++; o.label = String(oppIdx); }
+  if (type === 'text') { o.label = 'Teksti'; }
+  return o;
+}
+
+function addObjToAllFrames(o) {
+  for (let i = 0; i < frames.length; i++) {
+    if (i !== currentFrame) frames[i].push({ ...o });
+  }
+}
+
+function hitAt(px, py) {
+  for (let i = objects.length - 1; i >= 0; i--) {
+    const o = objects[i];
+    if (o.type === 'text') {
+      ctx.font = 'bold 13px system-ui';
+      const tw = ctx.measureText(o.label).width + 16;
+      if (px >= o.x - tw/2 && px <= o.x + tw/2 && Math.abs(py - o.y) < 14) return o;
+    } else if (Math.hypot(px - o.x, py - o.y) < r(o) + 4) return o;
+  }
+  return null;
+}
+
+// ─── Mouse ───────────────────────────────────────────────────────────────────
+
+function canvasXY(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) * (canvas.width  / rect.width),
+    y: (e.clientY - rect.top)  * (canvas.height / rect.height)
+  };
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (playing) return;
+  const { x, y } = canvasXY(e);
+
+  if (e.button === 2) {
+    const o = hitAt(x, y);
+    if (o) { selectedId = o.id; deleteSelected(); }
+    e.preventDefault(); return;
+  }
+
+  if (activeTool === 'select') {
+    const o = hitAt(x, y);
+    if (o) {
+      selectedId = o.id;
+      dragging = true;
+      dragDX = x - o.x; dragDY = y - o.y;
+    } else {
+      selectedId = null;
+    }
+    render();
+    return;
+  }
+
+  // place new object
+  const o = makeObj(activeTool, x, y);
+  objects.push(o);
+  addObjToAllFrames(o);
+  saveFrame();
+  selectedId = o.id;
+  setTool('select');
+  render();
+
+  if (o.type === 'text') openDlg(o.id);
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!playing && dragging && activeTool === 'select') {
+    const { x, y } = canvasXY(e);
+    const o = objects.find(o => o.id === selectedId);
+    if (o) { o.x = x - dragDX; o.y = y - dragDY; render(); }
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  if (dragging) { dragging = false; saveFrame(); }
+});
+
+canvas.addEventListener('dblclick', e => {
+  if (playing) return;
+  const { x, y } = canvasXY(e);
+  const o = hitAt(x, y);
+  if (o && (o.type === 'own' || o.type === 'opp' || o.type === 'text')) {
+    selectedId = o.id;
+    render();
+    openDlg(o.id);
+  }
+});
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// ─── Delete ──────────────────────────────────────────────────────────────────
+
+function deleteSelected() {
+  if (!selectedId) return;
+  const id = selectedId;
+  selectedId = null;
+  objects = objects.filter(o => o.id !== id);
+  for (let i = 0; i < frames.length; i++) frames[i] = frames[i].filter(o => o.id !== id);
+  saveFrame();
+  render();
+}
+
+function clearAll() {
+  if (!confirm('Poistetaanko kaikki objektit kaikilta hetkilta?')) return;
+  objects = [];
+  frames = frames.map(() => []);
+  selectedId = null;
+  ownIdx = oppIdx = 0;
+  render();
+}
+
+// ─── Label dialog ─────────────────────────────────────────────────────────────
+
+function openDlg(id) {
+  dlgId = id;
+  const o = objects.find(o => o.id === id);
+  document.getElementById('dlg-title').textContent =
+    o.type === 'text' ? 'Muokkaa tekstiä' : 'Muokkaa nimeä / numeroa';
+  document.getElementById('dlg-input').value = o ? o.label : '';
+  document.getElementById('dlg-overlay').classList.add('show');
+  setTimeout(() => {
+    const inp = document.getElementById('dlg-input');
+    inp.focus(); inp.select();
+  }, 40);
+}
+
+function closeDlg() {
+  document.getElementById('dlg-overlay').classList.remove('show');
+  dlgId = null;
+}
+
+function confirmDlg() {
+  if (!dlgId) return;
+  const val = document.getElementById('dlg-input').value.trim();
+  for (const fr of frames) {
+    const s = fr.find(o => o.id === dlgId);
+    if (s) s.label = val;
+  }
+  const o = objects.find(o => o.id === dlgId);
+  if (o) o.label = val;
+  closeDlg();
+  render();
+}
+
+document.getElementById('dlg-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  { confirmDlg(); }
+  if (e.key === 'Escape') { closeDlg();   }
+});
+
+document.getElementById('dlg-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('dlg-overlay')) closeDlg();
+});
+
+// ─── Keyboard shortcuts ───────────────────────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('dlg-overlay').classList.contains('show')) return;
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT') return;
+
+  switch (e.key) {
+    case ' ':        e.preventDefault(); togglePlay();              break;
+    case 'ArrowLeft':  e.preventDefault(); goFrame(currentFrame - 1); break;
+    case 'ArrowRight': e.preventDefault(); goFrame(currentFrame + 1); break;
+    case 'Delete':
+    case 'Backspace':  deleteSelected();                             break;
+    case 'Escape':     selectedId = null; setTool('select'); render(); break;
+    case 'v': case 'V': setTool('select');  break;
+    case 'p': case 'P': setTool('ball');    break;
+    case 'o': case 'O': setTool('own');     break;
+    case 'r': case 'R': setTool('opp');     break;
+    case 't': case 'T': setTool('cone');    break;
+    case 'k': case 'K': setTool('text');    break;
+  }
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+
+resize();
+updateUI();
+</script>
+</body>
+</html>
