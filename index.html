@@ -257,6 +257,69 @@ body {
   padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px;
 }
 #help-close:hover { background: #4b5563; }
+
+/* Archive modal */
+#archive-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: none; align-items: center; justify-content: center;
+  z-index: 300;
+}
+#archive-overlay.show { display: flex; }
+#archive-box {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 22px 26px;
+  width: 380px; max-width: 95vw;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  display: flex; flex-direction: column; gap: 14px;
+}
+#archive-box h2 { font-size: 15px; font-weight: 700; color: #f9fafb; }
+.arc-save-row { display: flex; gap: 6px; }
+.arc-save-row input {
+  flex: 1; padding: 7px 10px;
+  background: #111827; border: 1px solid #374151; color: #f9fafb;
+  border-radius: 6px; font-size: 13px; outline: none;
+}
+.arc-save-row input:focus { border-color: #6366f1; }
+.arc-save-row button {
+  background: #059669; border: none; color: #fff;
+  padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+}
+.arc-save-row button:hover { background: #047857; }
+.arc-file-row { display: flex; gap: 6px; }
+.arc-file-row button {
+  flex: 1; background: #374151; border: none; color: #d1d5db;
+  padding: 7px 0; border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+.arc-file-row button:hover { background: #4b5563; }
+.arc-list { display: flex; flex-direction: column; gap: 5px; max-height: 220px; overflow-y: auto; }
+.arc-list-empty { font-size: 13px; color: #4b5563; text-align: center; padding: 20px 0; }
+.arc-entry {
+  display: flex; align-items: center; gap: 8px;
+  background: #111827; border-radius: 6px; padding: 8px 10px;
+}
+.arc-entry-name { flex: 1; font-size: 13px; color: #e5e7eb; }
+.arc-entry-date { font-size: 11px; color: #6b7280; }
+.arc-entry button {
+  background: none; border: none; color: #6b7280; cursor: pointer; font-size: 14px; padding: 2px 5px;
+}
+.arc-entry button:hover { color: #f9fafb; }
+.arc-close {
+  background: #374151; border: none; color: #d1d5db;
+  padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+.arc-close:hover { background: #4b5563; }
+
+/* Recording indicator */
+#rec-indicator {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  background: #dc2626; color: #fff; padding: 6px 16px;
+  border-radius: 20px; font-size: 12px; font-weight: 600;
+  display: none; z-index: 400; pointer-events: none;
+}
+#rec-indicator.show { display: block; }
 </style>
 </head>
 <body>
@@ -330,6 +393,26 @@ body {
 
   <div class="spacer"></div>
 
+  <!-- Archive -->
+  <button class="tool-btn" onclick="openArchive()" title="Tallenna ja lataa harjoituksia">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <rect x="3" y="5" width="20" height="16" rx="2" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+      <rect x="8" y="5" width="10" height="5" rx="1" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+      <line x1="7" y1="14" x2="19" y2="14" stroke="#9ca3af" stroke-width="1.5"/>
+      <line x1="7" y1="17" x2="15" y2="17" stroke="#9ca3af" stroke-width="1.5"/>
+    </svg>
+    Arkisto
+  </button>
+
+  <!-- Export video -->
+  <button class="tool-btn" id="btn-export-video" onclick="exportVideo()" title="Tallenna animaatio videoksi (WebM)">
+    <svg class="tool-icon" viewBox="0 0 26 26">
+      <rect x="2" y="7" width="16" height="12" rx="2" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+      <polygon points="18,10 24,7 24,19 18,16" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+    Vie video
+  </button>
+
   <!-- Help -->
   <button class="tool-btn" onclick="document.getElementById('help-overlay').classList.add('show')" title="Ohjeet">
     <svg class="tool-icon" viewBox="0 0 26 26">
@@ -376,6 +459,29 @@ body {
   <span id="frame-label">Hetki 1 / 1</span>
 
   <span id="hint">Kaksoisklikkaa: muokkaa · Hiiren oikea: poista · Del: poista valittu</span>
+</div>
+
+<div id="rec-indicator">⏺ Tallennetaan videota...</div>
+
+<!-- Archive modal -->
+<div id="archive-overlay">
+  <div id="archive-box">
+    <h2>Harjoitusarkisto</h2>
+
+    <div class="arc-save-row">
+      <input id="arc-name-input" placeholder="Harjoituksen nimi..." maxlength="60">
+      <button onclick="saveToArchive()">Tallenna</button>
+    </div>
+
+    <div class="arc-file-row">
+      <button onclick="exportJSON()">⬇ Lataa .json</button>
+      <button onclick="importJSON()">⬆ Avaa .json</button>
+    </div>
+
+    <div class="arc-list" id="arc-list"></div>
+
+    <button class="arc-close" onclick="closeArchive()">Sulje</button>
+  </div>
 </div>
 
 <!-- Help modal -->
@@ -450,10 +556,13 @@ let selectedId   = null;
 let dragging = false, dragDX = 0, dragDY = 0;
 
 // animation
-let playing    = false;
-let playOrigin = 0;      // frame index playback started at
-let playStart  = 0;      // timestamp
-let playRAF    = null;
+let playing         = false;
+let playOrigin      = 0;
+let playStart       = 0;
+let playRAF         = null;
+let playEndCallback = null;
+let recordingMode   = false;
+let isRecording     = false;
 
 // counters for auto-labeling
 let ownIdx = 0, oppIdx = 0;
@@ -782,12 +891,13 @@ function togglePlay() {
   else startPlay();
 }
 
-function startPlay() {
-  if (frames.length <= 1) return;
+function startPlay(callback) {
+  if (frames.length <= 1) { if (callback) callback(); return; }
   saveFrame();
-  playing    = true;
-  playOrigin = currentFrame;
-  playStart  = performance.now();
+  playing         = true;
+  playOrigin      = currentFrame;
+  playStart       = performance.now();
+  playEndCallback = callback || null;
   document.getElementById('btn-play').textContent = '⏸';
   document.getElementById('btn-play').classList.add('playing');
   selectedId = null;
@@ -799,11 +909,13 @@ function stopPlay() {
   if (playRAF) cancelAnimationFrame(playRAF);
   document.getElementById('btn-play').textContent = '▶';
   document.getElementById('btn-play').classList.remove('playing');
-  // restore to origin frame
-  currentFrame = playOrigin;
-  objects = frames[currentFrame].map(o => ({ ...o }));
-  updateUI();
-  render();
+  if (!recordingMode) {
+    currentFrame = playOrigin;
+    objects = frames[currentFrame].map(o => ({ ...o }));
+    updateUI();
+    render();
+  }
+  if (playEndCallback) { const cb = playEndCallback; playEndCallback = null; cb(); }
 }
 
 function tick(now) {
@@ -1040,6 +1152,156 @@ document.addEventListener('keydown', e => {
     case 'k': case 'K': setTool('text');    break;
   }
 });
+
+// ─── Archive ──────────────────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'harjoitus_arkisto';
+
+function getArchive() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function openArchive() {
+  renderArchiveList();
+  document.getElementById('archive-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('arc-name-input').focus(), 40);
+}
+
+function closeArchive() {
+  document.getElementById('archive-overlay').classList.remove('show');
+}
+
+function saveToArchive() {
+  const name = document.getElementById('arc-name-input').value.trim() || 'Harjoitus';
+  saveFrame();
+  const archive = getArchive();
+  const idx = archive.findIndex(e => e.name === name);
+  const entry = { id: idx >= 0 ? archive[idx].id : Date.now(), name, saved: new Date().toISOString(), frames: frames.map(f => f.map(o => ({...o}))), uid };
+  if (idx >= 0) archive[idx] = entry; else archive.unshift(entry);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(archive));
+  renderArchiveList();
+  document.getElementById('arc-name-input').value = '';
+}
+
+function loadArchiveEntry(id) {
+  const entry = getArchive().find(e => e.id === id);
+  if (!entry) return;
+  frames = entry.frames.map(f => f.map(o => ({...o})));
+  uid = entry.uid || uid;
+  currentFrame = 0;
+  objects = frames[0].map(o => ({...o}));
+  selectedId = null;
+  updateUI(); render();
+  closeArchive();
+}
+
+function deleteArchiveEntry(id) {
+  const archive = getArchive().filter(e => e.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(archive));
+  renderArchiveList();
+}
+
+function renderArchiveList() {
+  const list = document.getElementById('arc-list');
+  const archive = getArchive();
+  if (!archive.length) {
+    list.innerHTML = '<div class="arc-list-empty">Ei tallennettuja harjoituksia</div>';
+    return;
+  }
+  list.innerHTML = archive.map(e => {
+    const d = new Date(e.saved);
+    const date = `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}`;
+    return `<div class="arc-entry">
+      <span class="arc-entry-name">${e.name}</span>
+      <span class="arc-entry-date">${date}</span>
+      <button onclick="loadArchiveEntry(${e.id})" title="Lataa">📂</button>
+      <button onclick="deleteArchiveEntry(${e.id})" title="Poista">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function exportJSON() {
+  saveFrame();
+  const data = JSON.stringify({ version: 1, frames, uid }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'harjoitus.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.frames) throw new Error();
+        frames = data.frames.map(f => f.map(o => ({...o})));
+        uid = data.uid || uid;
+        currentFrame = 0;
+        objects = frames[0].map(o => ({...o}));
+        selectedId = null;
+        updateUI(); render(); closeArchive();
+      } catch { alert('Virheellinen tiedosto.'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+document.getElementById('archive-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('archive-overlay')) closeArchive();
+});
+document.getElementById('arc-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveToArchive();
+});
+
+// ─── Video export ─────────────────────────────────────────────────────────────
+
+async function exportVideo() {
+  if (frames.length <= 1) { alert('Lisää vähintään 2 hetkeä ennen vientiä.'); return; }
+  if (isRecording) return;
+  if (!window.MediaRecorder) { alert('Selaimesi ei tue videon tallennusta. Kokeile Chromea.'); return; }
+
+  saveFrame();
+  const origFrame = currentFrame;
+  isRecording = true;
+  recordingMode = true;
+  document.getElementById('btn-export-video').style.opacity = '0.5';
+  document.getElementById('rec-indicator').classList.add('show');
+
+  goFrame(0);
+
+  const stream = canvas.captureStream(30);
+  const mimeType = ['video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+  const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  recorder.start();
+  await new Promise(r => setTimeout(r, 700)); // näytä ensimmäinen hetki
+  await new Promise(resolve => startPlay(resolve));
+  await new Promise(r => setTimeout(r, 700)); // näytä viimeinen hetki
+
+  await new Promise(resolve => { recorder.onstop = resolve; recorder.stop(); });
+
+  const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'harjoitus.webm'; a.click();
+  URL.revokeObjectURL(url);
+
+  recordingMode = false;
+  isRecording = false;
+  document.getElementById('btn-export-video').style.opacity = '';
+  document.getElementById('rec-indicator').classList.remove('show');
+  goFrame(origFrame);
+}
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
