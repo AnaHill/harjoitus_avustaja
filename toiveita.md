@@ -23,7 +23,7 @@ Selainpohjainen työkalu harjoituksen esittämisen. Toimii suoraan selaimessa il
 - ringetessä tai jääkiekossa kaukalo viivoineen
 - jne
 
-### Tallennus
+### Tallennusparannusta
 Tallennus voisi olla parempi. Esimerkiksi animaation jako whatsappiin vaikutti hankalalta. Osaatko suositella tapoja? Ehdota, älä toteuta.
 
 Clauden ehdotus
@@ -40,3 +40,17 @@ Netlify Drop — pysyvä, ei vaadi serveriä
 
 Tämä on paras vaihtoehto jos haluat jakaa sovelluksen myös muille valmentajille
 
+Tietokone (Netlify-osoite)
+  → teet harjoitteen
+  → tallennat JSON-tiedostoksi varmuuskopioksi
+  → vie video → WhatsApp
+
+Puhelin (sama Netlify-osoite)
+  → oma erillinen localStorage
+  → voit avata tietokoneelta siirretyn JSON:n
+
+Jos haluat vain tehdä harjoitteen ja jakaa videon WhatsAppiin → Netlify Drop on täydellinen, yksinkertainen, toimii.
+
+Jos haluat arkiston kaikilla laitteilla → helpoin ratkaisu olisi tallentaa JSON-tiedostot Google Driveen tai vastaavaan ja avata ne "Kansio"-toiminnolla aina tarvittaessa. Ei vaadi mitään lisäkehitystä.
+
+Itse arvioisin että Netlify + JSON Google Driveen on riittävä ja yksinkertainen ratkaisu — varsinainen palvelin ei tuo niin paljon lisäarvoa että sen rakentaminen kannattaisi.
